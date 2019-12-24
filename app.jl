@@ -1,0 +1,222 @@
+field_size = 8
+mine_count = 9
+is_game_over = false
+
+println("`easy`: lol nerd")
+println("`medium`: 8x8 grid with 9 mines")
+println("`hard`: 16x16 grid with 20 mines")
+print("Choose type of Difficulty: ")
+diff = string(readline())
+
+if diff === "easy"
+    println("Lol nerd")
+    exit()
+elseif diff === "medium"
+    global field_size = 8
+    global mine_count = 9
+elseif diff === "hard"
+    global field_size = 16
+    global mine_count = 20
+end
+
+# -1 Means the cell is a mine
+# 0 Means Empty
+# 1 Means 1 mine is around the cell
+# 2 Means 2 mines is around the cell
+# 3 Means 3 mines is around the cell
+# 4 Means 4 mines is around the cell
+# 5 Means 5 mines is around the cell
+# ...
+# 8 Means 8 mines is around the cell
+field = zeros(Int32, field_size, field_size)
+field_view = Array{Union{String,Int32}}(undef, field_size, field_size)
+field_view .= "■"
+revealed_cells = 0
+
+instructions = """
+Type the coordinates of the cell you want to check.
+Type `m 1 2` to mine (1, 2) or `f 1 2` to flag (1, 2) or type `exit` to exit.
+"""
+
+# Generating random coordinate to place mine
+function generateRandomCoord(min, max)
+    return rand(1:field_size)
+end
+
+# Checking surrounding cells for mines
+function checkSurroundingCells(field, x, y)
+    noOfMines = 0
+    surroundingCells = [
+        (x - 1, y - 1),
+        (x - 1, y),
+        (x - 1, y + 1),
+        (x, y - 1),
+        (x, y + 1),
+        (x + 1, y - 1),
+        (x + 1, y),
+        (x + 1, y + 1),
+    ]
+    for c in surroundingCells
+        if (0 < c[1] <= field_size && 0 < c[2] <= field_size)
+            if (field[c[2], c[1]] == -1)
+                noOfMines += 1
+            end
+        end
+    end
+    return noOfMines
+end
+
+# Adding numbers to cells
+function addNumbersToCells()
+    for y = 1:field_size
+        for x = 1:field_size
+            if (field[y, x] != -1)
+                field[y, x] = checkSurroundingCells(field, x, y)
+            end
+        end
+    end
+end
+
+# Function to add mines
+function add_mines()
+    x = generateRandomCoord(1, field_size)
+    y = generateRandomCoord(1, field_size)
+    if (field[y, x] != -1)
+        field[y, x] = -1
+    else
+        add_mines()
+    end
+end
+
+# Adding Mines to field
+for i = 1:mine_count add_mines() end
+
+# Adding numbers to cells
+addNumbersToCells()
+
+# Displays field and gridlines
+function displayField(field)
+    # Adding column numbers
+    finalStr = "   "
+    for x = 1:field_size
+        finalStr *= "  $(x)"
+    end
+    finalStr *= "\n   "
+    for x = 1:field_size
+        finalStr *= "___"
+    end
+    finalStr *= "\n"
+
+    for y = 1:field_size
+        # Adding row numbers
+        finalStr *= "$(y) |"
+
+        # Replacing numbers with specific values
+        for x = 1:field_size
+            val = field[y, x]
+            if (val == -1)
+                finalStr *= "  *"
+            else
+                finalStr *= "  $(val)"
+            end
+        end
+        finalStr *= "\n"
+    end
+    return finalStr
+end
+
+# This function is triggered when user clicks on a tile with no mines around it.
+# It clears the field around it.
+function clickOnZero(x, y)
+    global field_view[y, x] = "0"
+    global revealed_cells += 1
+    surroundingCells = [
+        (x - 1, y - 1),
+        (x - 1, y),
+        (x - 1, y + 1),
+        (x, y - 1),
+        (x, y + 1),
+        (x + 1, y - 1),
+        (x + 1, y),
+        (x + 1, y + 1),
+    ]
+    for c in surroundingCells
+        if (0 < c[1] <= field_size && 0 < c[2] <= field_size)
+            # Checks if surrounding tile is also zero and does recursion.
+            if (field[c[2], c[1]] == 0 && field_view[c[2], c[1]] == "■")
+                clickOnZero(c[1], c[2])
+
+            elseif (field[c[2], c[1]] != -1 && field_view[c[2], c[1]] == "■")
+                field_view[c[2], c[1]] = field[c[2], c[1]]
+                global revealed_cells += 1
+            end
+        end
+    end
+end
+
+# Clicks on a tile in the game
+function simulateClick(x, y)
+    if (field[y, x] == -1)
+        global is_game_over = true
+        println("You Lost !!")
+        displayFinalField()
+        exit()
+    elseif (field[y, x] == 0)
+        clickOnZero(x, y)
+    else
+        field_view[y, x] = field[y, x]
+        global revealed_cells += 1
+    end
+end
+
+# Parses user input and performs actions accordingly
+function parseInput(task, x, y)
+    if (task == "m")
+        simulateClick(x, y)
+    elseif (task == "f")
+        if (field_view[y, x] == "■")
+            field_view[y, x] = "?"
+        end
+    end
+end
+
+# Desplay field with revealed cells and mines at the end of the game.
+function displayFinalField()
+    for y in 1:field_size, x in 1:field_size
+        if (field[y, x] == -1)
+            field_view[y, x] = "*"
+        end
+    end
+    println(displayField(field_view))
+end
+
+# Repeats the loop until game is over
+while (!is_game_over)
+    println("---------------------------------------------------------------------")
+    println(displayField(field_view))
+
+    # Uncomment the line below to see the finished field
+    # println(displayField(field))
+
+    println(instructions)
+    print("Enter Command: ")
+    inp = chomp(readline())
+    inpList = split(inp)
+
+    if (inp == "exit")
+        displayFinalField()
+        exit()
+    elseif (length(inpList) == 3)
+        x = parse(Int32, inpList[2])
+        y = parse(Int32, inpList[3])
+        parseInput(inpList[1], x, y)
+        if (revealed_cells == (field_size^2) - mine_count)
+            println("You Won !!")
+            displayFinalField()
+            exit()
+        end
+    else
+        println("Please input correct command")
+        exit()
+    end
+end
