@@ -2,15 +2,17 @@
 
 Made by [TheComputerM](https://github.com/TheComputerM)
 
+## Dependencies
+- Julia (tested in v1.3.0)
 
-### Installation
+## Installation
 
-To play minesweeper run the app.jl file in the command line. There are no dependencies.
+To play minesweeper run the app.jl file in the command line.
 ```
 $ path/to/julia app.jl
 ```
 
-### Gameplay
+## Gameplay
 
 ```
 λ julia.exe app.jl                                                      
